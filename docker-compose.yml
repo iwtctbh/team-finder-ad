@@ -1,14 +1,21 @@
 services:
   db:
     image: postgres:16
-    env_file:
-      - .env
     container_name: teamfinder_db
     ports:
-      - "5432:5432"
+      - "5436:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: always
+    environment:
+      - POSTGRES_DB=team_finder
+      - POSTGRES_USER=team_finder
+      - POSTGRES_PASSWORD=team_finder
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U team_finder" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:
