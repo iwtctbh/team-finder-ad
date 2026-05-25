@@ -74,7 +74,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
         try:
             font = ImageFont.truetype("arial.ttf", AVATAR_FONT_SIZE)
-        except:
+        except OSError:
             font = ImageFont.load_default()
 
         letter = self.name[0].upper() if self.name else "?"

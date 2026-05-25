@@ -1,6 +1,5 @@
 from django.core.exceptions import ValidationError
 
-from .constants import PHONE_MAX_LENGTH
 from .models import User
 
 

@@ -1,10 +1,9 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
 from django.core.validators import RegexValidator
-from django.core.exceptions import ValidationError
 
 from .models import User
-from .utils import normalize_phone, validate_unique_phone, validate_github_url
+from .utils import validate_unique_phone, validate_github_url
 
 
 class RegistrationForm(forms.ModelForm):
@@ -39,7 +38,6 @@ class RegistrationForm(forms.ModelForm):
     def save(self, commit=True):
         user = super().save(commit=False)
         user.set_password(self.cleaned_data["password"])
-        # Не устанавливаем телефон по умолчанию
         if commit:
             user.save()
         return user
