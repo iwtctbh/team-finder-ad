@@ -1,8 +1,9 @@
+from http import HTTPStatus
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.core.paginator import Paginator
+
 from .models import User
 from .forms import (
     RegistrationForm,
@@ -10,7 +11,7 @@ from .forms import (
     ProfileEditForm,
     CustomPasswordChangeForm,
 )
-from projects.models import Project
+from .pagination import paginate_queryset
 
 
 def register_view(request):
@@ -46,13 +47,14 @@ def logout_view(request):
 
 def user_detail_view(request, user_id):
     user_obj = get_object_or_404(User, id=user_id, is_active=True)
-    projects = Project.objects.filter(owner=user_obj)
+    projects = user_obj.owned_projects.all()
     is_owner = request.user == user_obj
+
     return render(
         request,
         "users/user-details.html",
         {
-            "user": user_obj,  # Передаем как 'user' для соответствия шаблону
+            "user": user_obj,
             "projects": projects,
             "is_owner": is_owner,
         },
@@ -69,6 +71,7 @@ def edit_profile_submit(request):
             return redirect("users:detail", user_id=request.user.id)
     else:
         form = ProfileEditForm(instance=request.user)
+
     return render(
         request, "users/edit_profile.html", {"form": form, "user": request.user}
     )
@@ -85,19 +88,16 @@ def change_password_view(request):
             return redirect("users:detail", user_id=request.user.id)
     else:
         form = CustomPasswordChangeForm(request.user)
+
     return render(request, "users/change_password.html", {"form": form})
 
 
 def users_list_view(request):
     users_list = User.objects.filter(is_active=True).order_by("-date_joined")
-    paginator = Paginator(users_list, 12)
-    page_number = request.GET.get("page")
-    participants = paginator.get_page(page_number)
+    participants = paginate_queryset(request, users_list)
 
     return render(
         request,
         "users/participants.html",
-        {
-            "participants": participants,
-        },
+        {"participants": participants},
     )

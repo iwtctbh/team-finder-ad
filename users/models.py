@@ -1,69 +1,47 @@
+import random
+from io import BytesIO
+
 from django.db import models
-from django.contrib.auth.models import (
-    AbstractBaseUser,
-    PermissionsMixin,
-    BaseUserManager,
-)
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.core.validators import RegexValidator
 from django.core.files.base import ContentFile
 from PIL import Image, ImageDraw, ImageFont
-from io import BytesIO
-import random
 
-
-class UserManager(BaseUserManager):
-    def create_user(self, email, name, surname, password=None, **extra_fields):
-        if not email:
-            raise ValueError("Email обязателен")
-        email = self.normalize_email(email)
-        user = self.model(email=email, name=name, surname=surname, **extra_fields)
-        user.set_password(password)
-        user.save(using=self._db)
-        return user
-
-    def create_superuser(self, email, name, surname, password=None, **extra_fields):
-        extra_fields.setdefault("is_staff", True)
-        extra_fields.setdefault("is_superuser", True)
-        extra_fields.setdefault("is_active", True)
-        return self.create_user(email, name, surname, password, **extra_fields)
+from .constants import (
+    NAME_MAX_LENGTH,
+    SURNAME_MAX_LENGTH,
+    PHONE_MAX_LENGTH,
+    ABOUT_MAX_LENGTH,
+    AVATAR_SIZE,
+    AVATAR_FONT_SIZE,
+    AVATAR_COLORS,
+)
+from .managers import UserManager
 
 
 class User(AbstractBaseUser, PermissionsMixin):
-    AVATAR_COLORS = [
-        "#FF6B6B",
-        "#4ECDC4",
-        "#45B7D1",
-        "#96CEB4",
-        "#FFEAA7",
-        "#DDA0DD",
-        "#98D8C8",
-        "#F7DC6F",
-        "#BB8FCE",
-        "#85C1E2",
-    ]
-
     email = models.EmailField(unique=True, verbose_name="Email")
-    name = models.CharField(max_length=124, verbose_name="Имя")
-    surname = models.CharField(max_length=124, verbose_name="Фамилия")
+    name = models.CharField(max_length=NAME_MAX_LENGTH, verbose_name="Имя")
+    surname = models.CharField(max_length=SURNAME_MAX_LENGTH, verbose_name="Фамилия")
     avatar = models.ImageField(
         upload_to="avatars/", default="avatars/default.png", verbose_name="Аватар"
     )
     phone = models.CharField(
-        max_length=12,
+        max_length=PHONE_MAX_LENGTH,
         validators=[
             RegexValidator(
                 regex=r"^(\+7|8)\d{10}$",
                 message="Телефон должен быть в формате 8XXXXXXXXXX или +7XXXXXXXXXX",
             )
         ],
-        unique=False,  # Убираем unique=True
+        unique=False,
         blank=True,
         null=True,
         verbose_name="Телефон",
     )
     github_url = models.URLField(blank=True, null=True, verbose_name="GitHub")
     about = models.TextField(
-        max_length=256, blank=True, null=True, verbose_name="О себе"
+        max_length=ABOUT_MAX_LENGTH, blank=True, null=True, verbose_name="О себе"
     )
 
     is_active = models.BooleanField(default=True, verbose_name="Активен")
@@ -87,20 +65,15 @@ class User(AbstractBaseUser, PermissionsMixin):
     def get_full_name(self):
         return f"{self.name} {self.surname}"
 
-    def save(self, *args, **kwargs):
-        if not self.pk and not self.avatar:
-            self.avatar = self.generate_avatar()
-        super().save(*args, **kwargs)
-
-    def generate_avatar(self):
-        size = (200, 200)
-        color = random.choice(self.AVATAR_COLORS)
+    def _generate_avatar(self):
+        size = AVATAR_SIZE
+        color = random.choice(AVATAR_COLORS)
 
         image = Image.new("RGB", size, color)
         draw = ImageDraw.Draw(image)
 
         try:
-            font = ImageFont.truetype("arial.ttf", 100)
+            font = ImageFont.truetype("arial.ttf", AVATAR_FONT_SIZE)
         except:
             font = ImageFont.load_default()
 
@@ -117,3 +90,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         image.save(buffer, format="PNG")
 
         return ContentFile(buffer.getvalue(), name=f"avatar_{self.email}.png")
+
+    def save(self, *args, **kwargs):
+        if not self.pk and not self.avatar:
+            self.avatar = self._generate_avatar()
+        super().save(*args, **kwargs)

@@ -2,9 +2,19 @@ from django.db import models
 from django.conf import settings
 from django.core.validators import URLValidator
 
+from .constants import (
+    SKILL_NAME_MAX_LENGTH,
+    PROJECT_NAME_MAX_LENGTH,
+    PROJECT_STATUS_MAX_LENGTH,
+    PROJECT_STATUS_OPEN,
+    PROJECT_STATUS_CHOICES,
+)
+
 
 class Skill(models.Model):
-    name = models.CharField(max_length=124, unique=True, verbose_name="Название навыка")
+    name = models.CharField(
+        max_length=SKILL_NAME_MAX_LENGTH, unique=True, verbose_name="Название навыка"
+    )
 
     class Meta:
         verbose_name = "Навык"
@@ -15,12 +25,9 @@ class Skill(models.Model):
 
 
 class Project(models.Model):
-    STATUS_CHOICES = [
-        ("open", "Открыт"),
-        ("closed", "Закрыт"),
-    ]
-
-    name = models.CharField(max_length=200, verbose_name="Название проекта")
+    name = models.CharField(
+        max_length=PROJECT_NAME_MAX_LENGTH, verbose_name="Название проекта"
+    )
     description = models.TextField(blank=True, null=True, verbose_name="Описание")
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -33,7 +40,10 @@ class Project(models.Model):
         blank=True, null=True, validators=[URLValidator()], verbose_name="GitHub"
     )
     status = models.CharField(
-        max_length=6, choices=STATUS_CHOICES, default="open", verbose_name="Статус"
+        max_length=PROJECT_STATUS_MAX_LENGTH,
+        choices=PROJECT_STATUS_CHOICES,
+        default=PROJECT_STATUS_OPEN,
+        verbose_name="Статус",
     )
     participants = models.ManyToManyField(
         settings.AUTH_USER_MODEL,

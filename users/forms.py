@@ -1,7 +1,10 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
 from django.core.validators import RegexValidator
+from django.core.exceptions import ValidationError
+
 from .models import User
+from .utils import normalize_phone, validate_unique_phone, validate_github_url
 
 
 class RegistrationForm(forms.ModelForm):
@@ -89,21 +92,11 @@ class ProfileEditForm(forms.ModelForm):
 
     def clean_phone(self):
         phone = self.cleaned_data.get("phone")
-        if phone:
-            if phone.startswith("8"):
-                phone = "+7" + phone[1:]
-
-            if User.objects.filter(phone=phone).exclude(pk=self.instance.pk).exists():
-                raise forms.ValidationError(
-                    "Пользователь с таким номером телефона уже существует"
-                )
-        return phone
+        return validate_unique_phone(phone, self.instance.pk)
 
     def clean_github_url(self):
         url = self.cleaned_data.get("github_url")
-        if url and "github.com" not in url:
-            raise forms.ValidationError("Ссылка должна вести на GitHub")
-        return url
+        return validate_github_url(url)
 
 
 class CustomPasswordChangeForm(PasswordChangeForm):
